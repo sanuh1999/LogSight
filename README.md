@@ -120,7 +120,7 @@ GET /logs/mightContain?message=Server started
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/your-username/logsight.git
+git clone https://github.com/sanuh1999/LogSight.git
 cd logsight
 
 # 2. Build the project
