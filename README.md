@@ -1,108 +1,156 @@
+# LogSight 🔍
 
-
-# BloomLog – In-Memory High-Performance Log Service
-
-**BloomLog** is a **Spring Boot** web application for fast, in-memory log ingestion and querying. It uses **SHA-256 hashing** and **Bloom filters** to provide **efficient exact-match searches**, while also supporting **substring queries** and **time-range filtering**. Logs are stored entirely in memory, and old logs are automatically cleaned up daily. No database is required.
+> A lightweight, high-performance in-memory log ingestion and query service — built with Spring Boot, SHA-256 hashing, and Bloom filters for blazing-fast log lookups with zero database overhead.
 
 ---
 
-## **Features**
+## ✨ Features
 
-* **Fast In-Memory Log Storage** – Uses `ConcurrentHashMap` for thread-safe log storage.
-* **Bloom Filter Optimization** – Pre-hashes logs for quick existence checks.
-* **Exact Match & Substring Queries** – Choose between fast Bloom filter queries or full scan substring searches.
-* **Time-Range Filtering** – Query logs within specific timestamps.
-* **Automatic Cleanup** – Removes logs older than a retention period and trims memory usage daily.
-* **REST API** – Simple endpoints for ingestion, querying, and inspection.
-
----
-
-## **REST API Endpoints**
-
-| Endpoint             | Method | Description                                                      |
-| -------------------- | ------ | ---------------------------------------------------------------- |
-| `/logs/ingest`       | POST   | Ingest a log (`?message=...`)                                    |
-| `/logs/query`        | GET    | Query logs (`?message=...&exact=true/false&startTime=&endTime=`) |
-| `/logs/mightContain` | GET    | Check if a log might exist (Bloom filter)                        |
-| `/logs/all`          | GET    | Retrieve all logs                                                |
-
-**Query Parameters:**
-
-* `exact=true/false` → Exact match vs substring search.
-* `startTime` & `endTime` → Optional time-range filter in milliseconds.
+| Feature | Description |
+|---|---|
+| ⚡ **Fast In-Memory Storage** | `ConcurrentHashMap` provides thread-safe, low-latency log storage |
+| 🌸 **Bloom Filter Optimization** | SHA-256 pre-hashing enables O(1) existence checks before any scan |
+| 🔎 **Flexible Querying** | Supports exact-match (Bloom filter), substring search, and time-range filtering |
+| 🕒 **Time-Range Filtering** | Retrieve logs within precise millisecond-precision timestamp windows |
+| 🧹 **Automatic Cleanup** | Scheduled daily retention policy trims stale logs and reclaims memory |
+| 🌐 **RESTful API** | Simple, intuitive endpoints for ingestion, querying, and inspection |
+| 🪶 **Zero Dependencies** | No external database, broker, or infrastructure required |
 
 ---
 
-## **Example Usage**
+## 🛠 Tech Stack
 
-* **Ingest a log**:
+- **Framework:** Spring Boot 3.x
+- **Hashing:** SHA-256 (via `java.security.MessageDigest`)
+- **Probabilistic Filter:** Bloom Filter
+- **Concurrency:** `ConcurrentHashMap`
+- **Scheduling:** Spring `@Scheduled` (daily cleanup)
+- **Build Tool:** Maven
+
+---
+
+## ⚙️ How It Works
 
 ```
+Incoming Log
+     │
+     ▼
+[ SHA-256 Hash ]  ──────────────────── Hash the message
+     │
+     ▼
+[ Bloom Filter ]  ──────────────────── Store hash for fast existence checks
+     │
+     ▼
+[ ConcurrentHashMap ] ──────────────── Persist full log entry + timestamp in memory
+     │
+     ▼
+[ Query Engine ]
+     ├── exact=true  →  Bloom filter lookup  →  O(1) check
+     └── exact=false →  Full scan + substring match + optional time-range filter
+```
+
+1. **Ingest** — The log message is hashed with SHA-256 and registered in the Bloom filter, then stored with a timestamp in a concurrent map.
+2. **Exact Query** — The Bloom filter provides a near-instant probabilistic check before touching the full log store.
+3. **Substring Query** — A full scan is performed across all stored logs, optionally filtered by a time window.
+4. **Cleanup** — A daily scheduled task removes logs beyond the configured retention period to keep memory bounded.
+
+---
+
+## 🌐 API Reference
+
+### Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/logs/ingest` | Ingest a new log message |
+| `GET` | `/logs/query` | Query logs by message content and/or time range |
+| `GET` | `/logs/mightContain` | Bloom filter existence check for a message |
+| `GET` | `/logs/all` | Retrieve all stored logs |
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `message` | `string` | The log message to search for |
+| `exact` | `boolean` | `true` for Bloom filter exact match, `false` for substring scan |
+| `startTime` | `long` | Start of time window (Unix milliseconds) |
+| `endTime` | `long` | End of time window (Unix milliseconds) |
+
+---
+
+## 📖 Example Usage
+
+**Ingest a log**
+```http
 POST /logs/ingest?message=Server started
 ```
 
-* **Exact-match query**:
-
+**Exact-match query**
+```http
+GET /logs/query?message=Server started&exact=true
 ```
-GET /logs/query?message=Server started
-```
 
-* **Substring query**:
-
-```
+**Substring query**
+```http
 GET /logs/query?message=Server&exact=false
 ```
 
-* **Time-range query**:
-
-```
+**Time-range query**
+```http
 GET /logs/query?message=Error&exact=false&startTime=1678377600000&endTime=1678464000000
 ```
 
-* **Check if log might exist**:
-
-```
+**Bloom filter check**
+```http
 GET /logs/mightContain?message=Server started
 ```
 
+> ⚠️ **Note on Bloom Filters:** A `mightContain=true` response means the log *probably* exists. A `false` response guarantees it does not. False positives are possible by design.
+
 ---
 
-## **Getting Started**
+## 🚦 Getting Started
 
-1. **Clone the repository**
+### Prerequisites
 
-```bash
-git clone https://github.com/yourusername/BloomLog.git
-cd BloomLog
-```
+- Java 17+
+- Maven 3.6+
 
-2. **Build the project**
+### Installation
 
 ```bash
+# 1. Clone the repository
+git clone https://github.com/your-username/logsight.git
+cd logsight
+
+# 2. Build the project
 mvn clean install
-```
 
-3. **Run the application**
-
-```bash
+# 3. Run the application
 mvn spring-boot:run
-```
 
-4. **Access REST API**
-
-```
-http://localhost:8080/logs/
+# 4. API is available at
+# http://localhost:8080/logs/
 ```
 
 ---
 
-## **Advantages**
+## 🛣 Roadmap
 
-* Lightweight, **no external database** needed.
-* High performance with **Bloom filter exact-match queries**.
-* Flexible **substring search** and **time-range filtering**.
-* **Automatic memory management** through daily cleanup.
+- [ ] Configurable retention period via `application.properties`
+- [ ] Structured log ingestion (JSON payloads with severity levels)
+- [ ] Log severity filtering (`INFO`, `WARN`, `ERROR`)
+- [ ] Optional persistence layer with **Redis** or **PostgreSQL**
+- [ ] Metrics endpoint (`/actuator/prometheus`) for observability
+- [ ] Frontend dashboard for real-time log exploration
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please open an issue to discuss your idea before submitting a pull request.
 
 ---
 
 
+*Built as an exploration of probabilistic data structures and high-performance in-memory systems.*
